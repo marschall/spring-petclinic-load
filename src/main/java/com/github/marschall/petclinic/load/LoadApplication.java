@@ -1,7 +1,12 @@
 package com.github.marschall.petclinic.load;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.invoke.MethodHandles;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 import org.apache.hc.client5.http.config.ConnectionConfig;
@@ -38,10 +43,19 @@ public class LoadApplication {
     loadGenerator.start();
     try {
       System.in.read();
-      LOG.info("shutting down");
-      loadGenerator.close();
     } catch (IOException e) {
       throw e;
+    }
+    LOG.info("shutting down");
+    try {
+      loadGenerator.close();
+    } catch (InterruptedException e) {
+      return;
+    }
+    var histogram = loadGenerator.getHistogram();
+    try (OutputStream outputStream = Files.newOutputStream(Path.of("Load.hgrm"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+         PrintStream printStream = new PrintStream(outputStream)) {
+      histogram.outputPercentileDistribution(printStream, 1.0d);
     }
   }
 
